@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<h1>📊 Dashboard</h1>
+
+<div class="cards">
+  <div class="card stat"><div class="stat-num">{{ total_clients }}</div><div class="stat-label">Total Clients</div></div>
+  <div class="card stat"><div class="stat-num">{{ active_clients }}</div><div class="stat-label">Active Clients</div></div>
+  <div class="card stat"><div class="stat-num">{{ total_invoices }}</div><div class="stat-label">Total Invoices</div></div>
+  <div class="card stat stat-accent"><div class="stat-num">{{ format_pkr(current_month_billing) }}</div><div class="stat-label">This Month Billing</div></div>
+  <div class="card stat stat-good"><div class="stat-num">{{ format_pkr(paid_tot) }}</div><div class="stat-label">Total Paid</div></div>
+  <div class="card stat stat-warn"><div class="stat-num">{{ format_pkr(outstanding) }}</div><div class="stat-label">Total Outstanding</div></div>
+  <div class="card stat stat-muted"><div class="stat-num">{{ format_pkr(current_month_gst) }}</div><div class="stat-label">This Month GST</div></div>
+</div>
+
+<div class="card">
+  <h2>Status Overview</h2>
+  <div class="status-chips">
+    <a class="chip" href="{{ url_for('invoices.invoice_list', status='draft') }}">Drafts: {{ status_counts.draft }}</a>
+    <a class="chip" href="{{ url_for('invoices.invoice_list', status='issued') }}">Issued: {{ status_counts.issued }}</a>
+    <a class="chip" href="{{ url_for('invoices.invoice_list', status='partially_paid') }}">Partially Paid: {{ status_counts.partially_paid }}</a>
+    <a class="chip chip-good" href="{{ url_for('invoices.invoice_list', status='paid') }}">Paid: {{ status_counts.paid }}</a>
+    <a class="chip chip-bad" href="{{ url_for('invoices.invoice_list', status='cancelled') }}">Cancelled: {{ status_counts.cancelled }}</a>
+  </div>
+</div>
+
+<div class="card">
+  <h2>👥 Clients
+    <span class="tab-nav">
+      <button type="button" class="tab-btn active" data-tab="tab-active">Active ({{ active_clients }})</button>
+      <button type="button" class="tab-btn" data-tab="tab-inactive">Inactive ({{ inactive_clients_count }})</button>
+    </span>
+  </h2>
+  <div id="tab-active" class="tab-pane active">
+    <table class="table">
+      <thead><tr><th>Client</th><th>Company / Society</th><th>Phone</th><th>Location</th><th>Monthly Charges</th><th></th></tr></thead>
+      <tbody>
+      {% for c in active_client_rows %}
+        <tr>
+          <td><a href="{{ url_for('clients.client_profile', client_id=c.id) }}"><strong>{{ c.client_name }}</strong></a></td>
+          <td>{{ c.company_name }}</td>
+          <td>{{ c.phone }}</td>
+          <td>{{ c.location }}</td>
+          <td class="num">{{ format_pkr(c.monthly_service_charges) }}</td>
+          <td><a class="btn btn-sm" href="{{ url_for('clients.client_profile', client_id=c.id) }}">Profile</a></td>
+        </tr>
+      {% else %}
+        <tr><td colspan="6" class="empty">No active clients yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div id="tab-inactive" class="tab-pane">
+    <table class="table">
+      <thead><tr><th>Client</th><th>Company / Society</th><th>Phone</th><th>Location</th><th>Monthly Charges</th><th></th></tr></thead>
+      <tbody>
+      {% for c in inactive_client_rows %}
+        <tr>
+          <td><a href="{{ url_for('clients.client_profile', client_id=c.id) }}"><strong>{{ c.client_name }}</strong></a></td>
+          <td>{{ c.company_name }}</td>
+          <td>{{ c.phone }}</td>
+          <td>{{ c.location }}</td>
+          <td class="num">{{ format_pkr(c.monthly_service_charges) }}</td>
+          <td>
+            <a class="btn btn-sm" href="{{ url_for('clients.client_profile', client_id=c.id) }}">Profile</a>
+            {% if session.user.role == 'admin' %}
+            <a class="btn btn-sm" href="{{ url_for('clients.client_edit', client_id=c.id) }}">Reactivate</a>
+            {% endif %}
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="6" class="empty">No inactive clients — all active. 🎉</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Recent Invoices</h2>
+  <table class="table">
+    <thead><tr><th>Invoice No.</th><th>Client</th><th>Billing Month</th><th>Date</th><th>Amount</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+    {% for inv in recent %}
+      <tr>
+        <td><a href="{{ url_for('invoices.invoice_view', invoice_id=inv.id) }}">{{ inv.invoice_number }}</a></td>
+        <td>{{ inv.client_name }}</td>
+        <td>{{ month_label(inv.billing_month) }}</td>
+        <td>{{ inv.invoice_date }}</td>
+        <td class="num">{{ format_pkr(inv.total_amount) }}</td>
+        <td><span class="badge badge-{{ effective_status(inv) }}">{{ effective_status(inv).replace('_',' ') }}</span></td>
+        <td><a class="btn btn-sm" href="{{ url_for('invoices.invoice_print', invoice_id=inv.id) }}" target="_blank">🖨️</a></td>
+      </tr>
+    {% else %}
+      <tr><td colspan="7" class="empty">No invoices yet.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  document.querySelectorAll('.tab-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.remove('active'); });
+      document.querySelectorAll('.tab-pane').forEach(function (p) { p.classList.remove('active'); });
+      btn.classList.add('active');
+      document.getElementById(btn.dataset.tab).classList.add('active');
+    });
+  });
+})();
+</script>
+{% endblock %}

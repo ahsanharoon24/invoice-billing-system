@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block title %}Users{% endblock %}
+{% block content %}
+<div class="page-head"><h1>👤 User Management</h1></div>
+
+<div class="card">
+  <h3>➕ Add New User</h3>
+  <form method="post" action="{{ url_for('settings.user_add') }}" class="filters">
+    <input type="text" name="full_name" placeholder="Full name" required>
+    <input type="text" name="username" placeholder="Username" required>
+    <input type="password" name="password" placeholder="Password (min 6)" required>
+    <select name="role">
+      <option value="billing_officer">Billing Officer</option>
+      <option value="viewer">Viewer</option>
+      <option value="admin">Administrator</option>
+    </select>
+    <button class="btn btn-primary">Add User</button>
+  </form>
+</div>
+
+<div class="card">
+  <table class="table">
+    <thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody>
+    {% for u in users %}
+      <tr>
+        <td>{{ u.full_name }}{% if u.id == session.user.id %} <span class="badge badge-active">You</span>{% endif %}</td>
+        <td>{{ u.username }}</td>
+        <td><span class="badge badge-{{ u.role }}">{{ ROLES[u.role] }}</span></td>
+        <td><span class="badge badge-{{ 'active' if u.is_active else 'inactive' }}">{{ 'Active' if u.is_active else 'Inactive' }}</span></td>
+        <td class="actions">
+          {% if u.id != session.user.id %}
+          <form method="post" action="{{ url_for('settings.user_toggle', user_id=u.id) }}" class="inline-form">
+            <button class="btn btn-sm">{{ 'Deactivate' if u.is_active else 'Activate' }}</button>
+          </form>
+          <form method="post" action="{{ url_for('settings.user_password', user_id=u.id) }}" class="inline-form"
+                onsubmit="var v=prompt('New password (min 6):'); if(!v)return false; this.new_password.value=v; return true;">
+            <input type="hidden" name="new_password" value="">
+            <button class="btn btn-sm">Reset Password</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

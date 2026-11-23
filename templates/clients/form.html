@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Edit Client' if client else 'Add Client' }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>{{ '✏️ Edit Client' if client else '➕ Add Client' }}</h1>
+  <a class="btn" href="{{ url_for('clients.client_list') }}">← Back</a>
+</div>
+
+<div class="card">
+  <form method="post">
+    <h3>Basic Info</h3>
+    <div class="grid-2">
+      <div><label>Client Name *</label><input type="text" name="client_name" required value="{{ client.client_name if client else '' }}"></div>
+      <div><label>Company / Society Name</label><input type="text" name="company_name" value="{{ client.company_name if client else '' }}"></div>
+      <div><label>Contact Person</label><input type="text" name="contact_person" value="{{ client.contact_person if client else '' }}"></div>
+      <div><label>Phone Number</label><input type="text" name="phone" value="{{ client.phone if client else '' }}"></div>
+      <div><label>Email</label><input type="email" name="email" value="{{ client.email if client else '' }}"></div>
+      <div><label>Location / Area</label><input type="text" name="location" value="{{ client.location if client else '' }}"></div>
+      <div class="full"><label>Address</label><input type="text" name="address" value="{{ client.address if client else '' }}"></div>
+      <div><label>NTN</label><input type="text" name="ntn" value="{{ client.ntn if client else '' }}"></div>
+      <div><label>STRN</label><input type="text" name="strn" value="{{ client.strn if client else '' }}"></div>
+    </div>
+
+    <h3>Contract &amp; Billing</h3>
+    <div class="grid-2">
+      <div><label>Contract Start Date</label><input type="date" name="contract_start_date" value="{{ client.contract_start_date if client else '' }}"></div>
+      <div><label>Contract End Date</label><input type="date" name="contract_end_date" value="{{ client.contract_end_date if client else '' }}"></div>
+      <div><label>Monthly Service Charges (PKR)</label><input type="number" step="0.01" name="monthly_service_charges" value="{{ client.monthly_service_charges if client else '0' }}"></div>
+      <div><label>Default Units</label><input type="number" step="0.01" name="default_units" value="{{ client.default_units if client else '0' }}"></div>
+      <div><label>Default Per Unit Charges (PKR)</label><input type="number" step="0.01" name="default_per_unit_charges" value="{{ client.default_per_unit_charges if client else '0' }}"></div>
+      <div><label>Status</label>
+        <select name="status">
+          <option value="active" {{ 'selected' if client and client.status == 'active' }}>Active</option>
+          <option value="inactive" {{ 'selected' if client and client.status == 'inactive' }}>Inactive</option>
+        </select>
+      </div>
+      <div class="full"><label>Bank / Payment Details</label><textarea name="bank_details" rows="2">{{ client.bank_details if client else '' }}</textarea></div>
+      <div class="full"><label>Notes</label><textarea name="notes" rows="2">{{ client.notes if client else '' }}</textarea></div>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn btn-primary">Save Client</button>
+      {% if client and session.user.role == 'admin' %}
+      <button type="submit" formaction="{{ url_for('clients.client_deactivate', client_id=client.id) }}"
+              formmethod="post" class="btn btn-danger" onclick="return confirm('Confirm?')">
+        {{ 'Deactivate' if client.status == 'active' else 'Activate' }}
+      </button>
+      {% endif %}
+    </div>
+  </form>
+</div>
+{% endblock %}

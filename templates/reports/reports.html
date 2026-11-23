@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>📈 {{ title }}</h1>
+  <button class="btn btn-primary" onclick="window.print()">🖨️ Print Report</button>
+</div>
+
+<div class="card">
+  <form method="get" class="filters">
+    <select name="type">
+      {% for key, label in REPORT_TYPES.items() %}
+      <option value="{{ key }}" {{ 'selected' if rtype == key }}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <input type="month" name="month" value="{{ month }}">
+    <select name="client_id">
+      <option value="">All Clients</option>
+      {% for c in clients %}
+      <option value="{{ c.id }}" {{ 'selected' if client_id == c.id|string }}>{{ c.client_name }}</option>
+      {% endfor %}
+    </select>
+    <select name="status">
+      <option value="">All Status</option>
+      {% for s in ['issued','partially_paid','paid','overdue'] %}
+      <option value="{{ s }}" {{ 'selected' if status == s }}>{{ s.replace('_',' ') }}</option>
+      {% endfor %}
+    </select>
+    <input type="date" name="from" value="{{ date_from }}" title="From">
+    <input type="date" name="to" value="{{ date_to }}" title="To">
+    <button class="btn">Apply</button>
+  </form>
+</div>
+
+<div class="card report-body">
+  <table class="table">
+    {% if rtype == 'monthly' or rtype == 'gst' %}
+    <thead><tr><th>Billing Month</th><th>Invoices</th><th>Total Amount</th><th>GST</th></tr></thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td>{{ month_label(r.billing_month) }}</td>
+        <td>{{ r.invoices }}</td>
+        <td class="num">{{ format_pkr(r.total) }}</td>
+        <td class="num">{{ format_pkr(r.gst) }}</td>
+      </tr>
+      {% else %}<tr><td colspan="4" class="empty">No data.</td></tr>{% endfor %}
+    </tbody>
+    <tfoot><tr><th>Total</th><th>{{ rows|length }}</th><th class="num">{{ format_pkr(grand_total) }}</th><th class="num">{{ format_pkr(grand_gst) }}</th></tr></tfoot>
+
+    {% elif rtype == 'client' %}
+    <thead><tr><th>Client</th><th>Invoices</th><th>Total Amount</th><th>GST</th></tr></thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td><a href="{{ url_for('clients.client_profile', client_id=r.client_id) }}">{{ r.client_name }}</a></td>
+        <td>{{ r.invoices }}</td>
+        <td class="num">{{ format_pkr(r.total) }}</td>
+        <td class="num">{{ format_pkr(r.gst) }}</td>
+      </tr>
+      {% else %}<tr><td colspan="4" class="empty">No data.</td></tr>{% endfor %}
+    </tbody>
+    <tfoot><tr><th>Total</th><th></th><th class="num">{{ format_pkr(grand_total) }}</th><th class="num">{{ format_pkr(grand_gst) }}</th></tr></tfoot>
+
+    {% elif rtype == 'outstanding' %}
+    <thead><tr><th>Client</th><th>Phone</th><th>Invoices</th><th>Billed</th><th>Paid</th><th>Outstanding</th></tr></thead>
+    <tbody>
+      {% for r in rows %}
+      {% set bal = r.billed - r.paid %}
+      <tr>
+        <td><a href="{{ url_for('clients.client_profile', client_id=r.client_id) }}">{{ r.client_name }}</a></td>
+        <td>{{ r.phone or '—' }}</td>
+        <td>{{ r.invoices }}</td>
+        <td class="num">{{ format_pkr(r.billed) }}</td>
+        <td class="num">{{ format_pkr(r.paid) }}</td>
+        <td class="num"><strong>{{ format_pkr(bal) }}</strong></td>
+      </tr>
+      {% else %}<tr><td colspan="6" class="empty">Nothing outstanding — all clear! 🎉</td></tr>{% endfor %}
+    </tbody>
+    <tfoot><tr><th colspan="5">Total Outstanding</th><th class="num">{{ format_pkr(grand_total) }}</th></tr></tfoot>
+
+    {% else %}
+    <thead><tr><th>Invoice No.</th><th>Client</th><th>Billing Month</th><th>Date</th><th>Subtotal</th><th>GST</th><th>Total</th><th>Status</th></tr></thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td>{{ r.invoice_number }}</td>
+        <td>{{ r.client_name }}</td>
+        <td>{{ month_label(r.billing_month) }}</td>
+        <td>{{ r.invoice_date }}</td>
+        <td class="num">{{ format_pkr(r.subtotal) }}</td>
+        <td class="num">{{ format_pkr(r.gst_amount) }}</td>
+        <td class="num">{{ format_pkr(r.total_amount) }}</td>
+        <td><span class="badge badge-{{ effective_status(r) }}">{{ effective_status(r).replace('_',' ') }}</span></td>
+      </tr>
+      {% else %}<tr><td colspan="8" class="empty">No data.</td></tr>{% endfor %}
+    </tbody>
+    <tfoot><tr><th colspan="6">Total</th><th class="num">{{ format_pkr(grand_total) }}</th><th></th></tr></tfoot>
+    {% endif %}
+  </table>
+</div>
+{% endblock %}

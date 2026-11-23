@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block title %}All Clients{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>👥 All Clients <span class="count">({{ total }})</span></h1>
+  {% if can_edit %}<a class="btn btn-primary" href="{{ url_for('clients.client_add') }}">➕ Add Client</a>{% endif %}
+</div>
+
+<div class="card">
+  <form method="get" class="filters">
+    <input type="search" name="q" value="{{ q }}" placeholder="Name, company, phone, location..." class="grow">
+    <select name="status">
+      <option value="">All Status</option>
+      <option value="active" {{ 'selected' if status == 'active' }}>Active</option>
+      <option value="inactive" {{ 'selected' if status == 'inactive' }}>Inactive</option>
+    </select>
+    <button class="btn">Search</button>
+  </form>
+
+  <table class="table">
+    <thead><tr><th>Client</th><th>Company / Society</th><th>Phone</th><th>Location</th><th>Monthly Charges</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+    {% for c in clients %}
+      <tr>
+        <td><a href="{{ url_for('clients.client_profile', client_id=c.id) }}"><strong>{{ c.client_name }}</strong></a></td>
+        <td>{{ c.company_name }}</td>
+        <td>{{ c.phone }}</td>
+        <td>{{ c.location }}</td>
+        <td class="num">{{ format_pkr(c.monthly_service_charges) }}</td>
+        <td><span class="badge badge-{{ c.status }}">{{ c.status }}</span></td>
+        <td class="actions">
+          <a class="btn btn-sm" href="{{ url_for('clients.client_profile', client_id=c.id) }}">Profile</a>
+          {% if can_edit %}<a class="btn btn-sm" href="{{ url_for('invoices.invoice_new', client_id=c.id) }}">🧾 Invoice</a>{% endif %}
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="7" class="empty">No clients found.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+
+  {% if pages > 1 %}
+  <div class="pagination">
+    {% if page > 1 %}<a class="btn btn-sm" href="?page={{ page-1 }}&q={{ q }}&status={{ status }}">‹ Prev</a>{% endif %}
+    <span>Page {{ page }} / {{ pages }}</span>
+    {% if page < pages %}<a class="btn btn-sm" href="?page={{ page+1 }}&q={{ q }}&status={{ status }}">Next ›</a>{% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

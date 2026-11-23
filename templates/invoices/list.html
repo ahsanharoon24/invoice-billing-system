@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% block title %}All Invoices{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>🧾 All Invoices <span class="count">({{ total }})</span></h1>
+  {% if can_edit %}<a class="btn btn-primary" href="{{ url_for('invoices.invoice_new') }}">🆕 Create Invoice</a>{% endif %}
+</div>
+
+<div class="card">
+  <form method="get" class="filters">
+    <input type="search" name="q" value="{{ q }}" placeholder="🔍 Invoice no, client, company, phone..." class="grow">
+    <input type="month" name="month" value="{{ month }}">
+    <input type="date" name="from" value="{{ date_from }}" title="From date">
+    <input type="date" name="to" value="{{ date_to }}" title="To date">
+    <select name="status">
+      <option value="">All Status</option>
+      {% for s in ['draft','issued','partially_paid','paid','overdue','cancelled'] %}
+      <option value="{{ s }}" {{ 'selected' if status == s }}>{{ s.replace('_',' ') }}</option>
+      {% endfor %}
+    </select>
+    <button class="btn">Search</button>
+  </form>
+
+  <table class="table">
+    <thead><tr><th>Invoice No.</th><th>Client</th><th>Billing Month</th><th>Date</th><th>Total</th><th>Paid</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+    {% for inv in invoices %}
+      <tr>
+        <td><a href="{{ url_for('invoices.invoice_view', invoice_id=inv.id) }}"><strong>{{ inv.invoice_number }}</strong></a></td>
+        <td>{{ inv.client_name }}</td>
+        <td>{{ month_label(inv.billing_month) }}</td>
+        <td>{{ inv.invoice_date }}</td>
+        <td class="num">{{ format_pkr(inv.total_amount) }}</td>
+        <td class="num">{{ format_pkr(paid_map.get(inv.id, 0)) }}</td>
+        <td><span class="badge badge-{{ effective_status(inv) }}">{{ effective_status(inv).replace('_',' ') }}</span></td>
+        <td class="actions">
+          <a class="btn btn-sm" href="{{ url_for('invoices.invoice_view', invoice_id=inv.id) }}">View</a>
+          <a class="btn btn-sm" href="{{ url_for('invoices.invoice_print', invoice_id=inv.id) }}" target="_blank">🖨️</a>
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="8" class="empty">No invoices found.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+
+  {% if pages > 1 %}
+  <div class="pagination">
+    {% if page > 1 %}<a class="btn btn-sm" href="?page={{ page-1 }}&q={{ q }}&month={{ month }}&from={{ date_from }}&to={{ date_to }}&status={{ status }}">‹ Prev</a>{% endif %}
+    <span>Page {{ page }} / {{ pages }}</span>
+    {% if page < pages %}<a class="btn btn-sm" href="?page={{ page+1 }}&q={{ q }}&month={{ month }}&from={{ date_from }}&to={{ date_to }}&status={{ status }}">Next ›</a>{% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

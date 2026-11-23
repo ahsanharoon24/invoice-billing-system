@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login — {{ settings.company_name or 'Billing System' }}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="login-body">
+<div class="login-card">
+  <div class="login-logo">{{ (settings.company_name or 'BI')[:2]|upper }}</div>
+  <h1>{{ settings.company_name or 'Your Company' }}</h1>
+  <p class="login-sub">Billing &amp; Invoice Management System</p>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+      <div class="flash flash-{{ cat }}">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+  <form method="post" autocomplete="off">
+    <label>Username</label>
+    <input type="text" name="username" required autofocus>
+    <label>Password</label>
+    <input type="password" name="password" required>
+    <button type="submit" class="btn btn-primary btn-block">Login</button>
+  </form>
+</div>
+</body>
+</html>

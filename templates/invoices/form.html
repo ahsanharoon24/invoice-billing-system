@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Edit Invoice' if invoice else 'Create Invoice' }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>{{ '✏️ Edit Invoice' if invoice else '🆕 Create Invoice' }}</h1>
+  <a class="btn" href="{{ url_for('invoices.invoice_list') }}">← Back</a>
+</div>
+
+<form method="post" id="invoice-form">
+<div class="grid-2">
+  <div class="card">
+    <h3>Client</h3>
+    <label>Client *</label>
+    <select name="client_id" id="client-select" required>
+      <option value="">— Select Client —</option>
+      {% for c in clients %}
+      <option value="{{ c.id }}" data-name="{{ c.client_name }}" data-company="{{ c.company_name }}"
+              data-monthly="{{ c.monthly_service_charges }}" data-units="{{ c.default_units }}"
+              data-perunit="{{ c.default_per_unit_charges }}" data-phone="{{ c.phone }}"
+              data-ntn="{{ c.ntn }}" data-strn="{{ c.strn }}" data-address="{{ c.address }}"
+              data-bank="{{ c.bank_details }}"
+              {{ 'selected' if prefill and prefill.id == c.id }}
+              {{ 'selected' if invoice and invoice.client_id == c.id }}>
+        {{ c.client_name }}{% if c.company_name %} — {{ c.company_name }}{% endif %}
+      </option>
+      {% endfor %}
+    </select>
+    <div id="client-preview" class="client-preview">
+      {% if prefill or invoice %}
+      <div class="preview-box">
+        <strong>{{ prefill.client_name if prefill else '' }}</strong><br>
+        Phone: {{ prefill.phone if prefill else '' }}<br>
+        Address: {{ prefill.address if prefill else '' }}<br>
+        NTN: {{ prefill.ntn if prefill else '' }} | STRN: {{ prefill.strn if prefill else '' }}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Invoice Info</h3>
+    <div class="grid-2">
+      <div><label>Billing Month *</label>
+        <input type="month" name="billing_month" id="billing-month" required
+               value="{{ invoice.billing_month if invoice else default_month }}"></div>
+      <div><label>Invoice Date *</label>
+        <input type="date" name="invoice_date" required
+               value="{{ invoice.invoice_date if invoice else today }}"></div>
+      <div><label>Start Date</label>
+        <input type="date" name="start_date" value="{{ invoice.start_date if invoice else '' }}"></div>
+      <div><label>End Date</label>
+        <input type="date" name="end_date" value="{{ invoice.end_date if invoice else '' }}"></div>
+    </div>
+    <label>Service Description</label>
+    <input type="text" name="service_description" id="service-desc"
+           value="{{ invoice.service_description if invoice else 'Monthly Waste Management Service' }}"
+           placeholder="e.g. Monthly Waste Management Service">
+    <label>Notes</label>
+    <input type="text" name="notes" value="{{ invoice.notes if invoice else '' }}">
+  </div>
+</div>
+
+<div class="card">
+  <h3>Charges &amp; Calculation</h3>
+  <div class="grid-2">
+    <div><label>Units</label><input type="number" step="0.01" name="units" id="units" value="{{ invoice.units if invoice else '0' }}"></div>
+    <div><label>Per Unit Charges (PKR)</label><input type="number" step="0.01" name="per_unit_charges" id="per-unit" value="{{ invoice.per_unit_charges if invoice else '0' }}"></div>
+    <div><label>Monthly Service Charges (PKR)</label><input type="number" step="0.01" name="monthly_service_charges" id="monthly" value="{{ invoice.monthly_service_charges if invoice else '0' }}"></div>
+    <div><label>Other Charges (PKR)</label><input type="number" step="0.01" name="other_charges" id="other" value="{{ invoice.other_charges if invoice else '0' }}"></div>
+    <div><label>GST %</label><input type="number" step="0.01" name="gst_percent" id="gst" value="{{ invoice.gst_percent if invoice else settings.gst_percent }}"></div>
+    <div><label>Status</label>
+      <select name="status">
+        <option value="draft" {{ 'selected' if invoice and invoice.status == 'draft' }}>Draft</option>
+        <option value="issued" {{ 'selected' if invoice and invoice.status == 'issued' }}>Issued (Final)</option>
+      </select>
+    </div>
+  </div>
+
+  <table class="calc-table" id="calc-table">
+    <tr><th>Line Amount (Units × Rate)</th><td class="num" id="calc-line">Rs. 0.00</td></tr>
+    <tr><th>Subtotal (Monthly + Line + Other)</th><td class="num" id="calc-subtotal">Rs. 0.00</td></tr>
+    <tr><th>GST Amount</th><td class="num" id="calc-gst">Rs. 0.00</td></tr>
+    <tr class="grand"><th>Grand Total</th><td class="num" id="calc-total">Rs. 0.00</td></tr>
+  </table>
+
+  <div class="form-actions">
+    <button class="btn btn-primary">💾 Save Invoice</button>
+    <a class="btn" href="{{ url_for('invoices.invoice_list') }}">Cancel</a>
+  </div>
+</div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var f = document.getElementById('invoice-form');
+  function num(id) { return parseFloat(document.getElementById(id).value) || 0; }
+  function fmt(n) { return 'Rs. ' + n.toLocaleString('en-PK', {minimumFractionDigits: 2, maximumFractionDigits: 2}); }
+  function recalc() {
+    var line = num('units') * num('per-unit');
+    var subtotal = num('monthly') + line + num('other');
+    var gst = subtotal * num('gst') / 100;
+    var total = subtotal + gst;
+    document.getElementById('calc-line').textContent = fmt(line);
+    document.getElementById('calc-subtotal').textContent = fmt(subtotal);
+    document.getElementById('calc-gst').textContent = fmt(gst);
+    document.getElementById('calc-total').textContent = fmt(total);
+  }
+  ['units','per-unit','monthly','other','gst'].forEach(function (id) {
+    document.getElementById(id).addEventListener('input', recalc);
+  });
+  recalc();
+
+  // auto-load client details
+  var sel = document.getElementById('client-select');
+  var preview = document.getElementById('client-preview');
+  function loadClient() {
+    var o = sel.options[sel.selectedIndex];
+    if (!o || !o.value) { preview.innerHTML = ''; return; }
+    var d = o.dataset;
+    if (d.monthly) document.getElementById('monthly').value = d.monthly;
+    if (d.units) document.getElementById('units').value = d.units;
+    if (d.perunit) document.getElementById('per-unit').value = d.perunit;
+    preview.innerHTML = '<div class="preview-box"><strong>' + (d.name||'') + '</strong>' +
+      (d.company ? '<br>Company: ' + d.company : '') +
+      (d.phone ? '<br>Phone: ' + d.phone : '') +
+      (d.address ? '<br>Address: ' + d.address : '') +
+      (d.ntn ? '<br>NTN: ' + d.ntn + (d.strn ? ' | STRN: ' + d.strn : '') : '') +
+      (d.bank ? '<br>Bank: ' + d.bank : '') + '</div>';
+    recalc();
+  }
+  sel.addEventListener('change', loadClient);
+})();
+</script>
+{% endblock %}

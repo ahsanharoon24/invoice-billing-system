@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>{{ inv.invoice_number }} — Print</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<style>
+  body { background: #fff; }
+  .print-toolbar { text-align: center; padding: 16px; background: #f4f6fb; margin-bottom: 16px; }
+  .print-toolbar button { font-size: 15px; padding: 10px 28px; margin: 0 6px; cursor: pointer; border: none; border-radius: 8px; }
+  .print-toolbar .p-btn { background: #1a4d8c; color: #fff; }
+  .print-toolbar .p-btn2 { background: #e2e8f0; color: #0f172a; }
+  .invoice-sheet { max-width: 794px; margin: 0 auto; background: #fff; padding: 40px 44px; border: 1px solid #e2e8f0; font-family: 'Segoe UI', Arial, sans-serif; color: #0f172a; }
+  .inv-head { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #1a4d8c; padding-bottom: 18px; margin-bottom: 22px; }
+  .inv-company h1 { margin: 0; font-size: 24px; color: #1a4d8c; }
+  .inv-company .addr { font-size: 12px; color: #475569; margin-top: 4px; line-height: 1.5; }
+  .inv-title { text-align: right; }
+  .inv-title h2 { margin: 0; font-size: 30px; letter-spacing: 4px; color: #0f172a; }
+  .inv-title .no { font-size: 13px; color: #1a4d8c; font-weight: 600; margin-top: 6px; }
+  .inv-meta { display: flex; justify-content: space-between; gap: 24px; margin-bottom: 20px; }
+  .inv-meta h3 { margin: 0 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; }
+  .inv-meta table { width: 100%; font-size: 13px; }
+  .inv-meta td { padding: 2px 4px; }
+  .inv-meta td.k { color: #64748b; width: 110px; }
+  .svc-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 18px 0; }
+  .svc-table th { background: #1a4d8c; color: #fff; padding: 9px 10px; text-align: left; }
+  .svc-table td { padding: 9px 10px; border-bottom: 1px solid #e2e8f0; }
+  .svc-table .r { text-align: right; }
+  .sum-table { width: 320px; margin-left: auto; border-collapse: collapse; font-size: 13px; }
+  .sum-table td { padding: 6px 10px; }
+  .sum-table td.k { color: #475569; }
+  .sum-table tr.grand td { background: #1a4d8c; color: #fff; font-size: 16px; font-weight: 700; }
+  .words { font-size: 13px; margin: 14px 0; padding: 10px 12px; background: #f8fafc; border-left: 4px solid #1a4d8c; }
+  .inv-foot { display: flex; justify-content: space-between; margin-top: 34px; }
+  .bank-box { font-size: 12px; color: #334155; }
+  .bank-box h4 { margin: 0 0 6px; color: #0f172a; font-size: 13px; text-transform: uppercase; }
+  .bank-box p { margin: 2px 0; }
+  .sign-box { text-align: center; width: 260px; }
+  .sign-box .sig-img { height: 56px; margin-bottom: 4px; }
+  .sign-line { border-top: 1px solid #94a3b8; margin-top: 46px; padding-top: 8px; font-size: 12px; color: #334155; }
+  .inv-footer-note { margin-top: 26px; font-size: 11px; color: #94a3b8; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 10px; }
+  @media print {
+    .print-toolbar { display: none; }
+    .invoice-sheet { border: none; max-width: 100%; padding: 0; }
+    @page { size: A4; margin: 14mm; }
+  }
+</style>
+</head>
+<body>
+<div class="print-toolbar">
+  <button class="p-btn" onclick="window.print()">🖨️ Print</button>
+  <button class="p-btn2" onclick="window.print()">⬇️ Save as PDF</button>
+  <button class="p-btn2" onclick="window.close()">✖ Close</button>
+</div>
+
+<div class="invoice-sheet">
+  <!-- COMPANY HEADER -->
+  <div class="inv-head">
+    <div class="inv-company">
+      {% if settings_logo %}<img src="{{ url_for('static', filename=settings_logo) }}" alt="logo" style="height:56px; margin-bottom:6px;">{% endif %}
+      <h1>{{ inv.company_name }}</h1>
+      <div class="addr">
+        {% if inv.company_address %}{{ inv.company_address }}<br>{% endif %}
+        {% if inv.company_phone %}Phone: {{ inv.company_phone }} | {% endif %}
+        {% if inv.company_email %}{{ inv.company_email }}{% endif %}
+        {% if inv.company_ntn or inv.company_strn %}<br>{% if inv.company_ntn %}NTN: {{ inv.company_ntn }} | {% endif %}{% if inv.company_strn %}STRN: {{ inv.company_strn }}{% endif %}{% endif %}
+      </div>
+    </div>
+    <div class="inv-title">
+      <h2>INVOICE</h2>
+      <div class="no">No. {{ inv.invoice_number }}</div>
+    </div>
+  </div>
+
+  <!-- INVOICE + CLIENT INFO -->
+  <div class="inv-meta">
+    <div style="flex:1">
+      <h3>Billed To</h3>
+      <table>
+        <tr><td class="k">Client</td><td><strong>{{ client.client_name }}</strong></td></tr>
+        {% if client.company_name %}<tr><td class="k">Company</td><td>{{ client.company_name }}</td></tr>{% endif %}
+        {% if client.contact_person %}<tr><td class="k">Contact</td><td>{{ client.contact_person }}</td></tr>{% endif %}
+        {% if client.phone %}<tr><td class="k">Phone</td><td>{{ client.phone }}</td></tr>{% endif %}
+        {% if client.address %}<tr><td class="k">Address</td><td>{{ client.address }}{% if client.location %}, {{ client.location }}{% endif %}</td></tr>{% endif %}
+        {% if client.ntn or client.strn %}<tr><td class="k">NTN / STRN</td><td>{{ client.ntn or '—' }} / {{ client.strn or '—' }}</td></tr>{% endif %}
+      </table>
+    </div>
+    <div style="flex:1">
+      <h3>Invoice Details</h3>
+      <table>
+        <tr><td class="k">Invoice No.</td><td>{{ inv.invoice_number }}</td></tr>
+        <tr><td class="k">Invoice Date</td><td>{{ inv.invoice_date }}</td></tr>
+        <tr><td class="k">Billing Month</td><td>{{ month_label(inv.billing_month) }}</td></tr>
+        <tr><td class="k">Period</td><td>{{ inv.start_date or '—' }} to {{ inv.end_date or '—' }}</td></tr>
+        <tr><td class="k">Status</td><td>{{ effective_status(inv).replace('_',' ').title() }}</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- SERVICE TABLE -->
+  <table class="svc-table">
+    <thead><tr><th>Description</th><th class="r">Units</th><th class="r">Per Unit (PKR)</th><th class="r">Amount (PKR)</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>{{ inv.service_description or 'Waste Management Service' }}</td>
+        <td class="r">{{ inv.units }}</td>
+        <td class="r">{{ format_pkr(inv.per_unit_charges) }}</td>
+        <td class="r">{{ format_pkr(inv.units * inv.per_unit_charges) }}</td>
+      </tr>
+      {% if inv.monthly_service_charges %}
+      <tr><td>Monthly Service Charges</td><td class="r">—</td><td class="r">—</td><td class="r">{{ format_pkr(inv.monthly_service_charges) }}</td></tr>
+      {% endif %}
+      {% if inv.other_charges %}
+      <tr><td>Other Charges</td><td class="r">—</td><td class="r">—</td><td class="r">{{ format_pkr(inv.other_charges) }}</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+
+  <!-- SUMMARY -->
+  <table class="sum-table">
+    <tr><td class="k">Subtotal</td><td class="r">{{ format_pkr(inv.subtotal) }}</td></tr>
+    <tr><td class="k">GST ({{ inv.gst_percent }}%)</td><td class="r">{{ format_pkr(inv.gst_amount) }}</td></tr>
+    <tr class="grand"><td>GRAND TOTAL</td><td class="r">{{ format_pkr(inv.total_amount) }}</td></tr>
+  </table>
+
+  <div class="words"><strong>Amount in words:</strong> {{ amount_in_words(inv.total_amount) }}</div>
+
+  <!-- BANK + SIGNATURE -->
+  <div class="inv-foot">
+    <div class="bank-box">
+      <h4>Payment Details</h4>
+      {% if inv.bank_name %}<p><strong>{{ inv.bank_name }}</strong></p>{% endif %}
+      {% if inv.account_title %}<p>Account Title: {{ inv.account_title }}</p>{% endif %}
+      {% if inv.account_number %}<p>Account No: {{ inv.account_number }}</p>{% endif %}
+      {% if inv.iban %}<p>IBAN: {{ inv.iban }}</p>{% endif %}
+    </div>
+    <div class="sign-box">
+      {% if settings_signature %}<img class="sig-img" src="{{ url_for('static', filename=settings_signature) }}" alt="sig">{% endif %}
+      <div class="sign-line">
+        {% if inv.authorized_signatory %}<strong>{{ inv.authorized_signatory }}</strong><br>{% endif %}
+        Authorized Signature
+      </div>
+    </div>
+  </div>
+
+  {% if settings_footer %}<div class="inv-footer-note">{{ settings_footer }}</div>{% endif %}
+</div>
+
+<script>window.onload = function () { document.title = '{{ inv.invoice_number }}'; };</script>
+</body>
+</html>
