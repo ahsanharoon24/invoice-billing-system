@@ -2,7 +2,7 @@
 
 A complete billing system for service businesses — clients stored once, monthly invoices generated automatically with units × rate, fixed charges and GST, printable A4 invoices, payment tracking and reports.
 
-**[Live demo](https://ahsan-invoice-billing.vercel.app)** · Login: `admin` / `admin123`
+**[Live demo](https://billsuite.vercel.app)** · Login: `admin` / `admin123`
 
 ![Dashboard](screenshots/01_dashboard.png)
 
